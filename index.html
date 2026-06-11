@@ -163,6 +163,14 @@ table.dt tr:hover td{background:var(--bg);}
 /* DIVIDER */
 hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
+/* TERM TOOLTIPS */
+[data-term]{cursor:help;}
+[data-term]:hover{outline:1px dashed var(--blue);outline-offset:2px;border-radius:4px;}
+#term-tip{position:fixed;max-width:260px;background:var(--ink);color:#fff;font-size:11px;line-height:1.5;padding:9px 11px;border-radius:7px;box-shadow:var(--sh);z-index:1000;pointer-events:none;opacity:0;transition:opacity .12s;}
+#term-tip.show{opacity:1;}
+#term-tip .tt-name{font-weight:700;font-size:12px;margin-bottom:3px;}
+#term-tip .tt-formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#93c5fd;margin-top:5px;font-size:10px;line-height:1.4;}
+
 /* PRINT / PDF */
 .print-head{display:none;}
 @media print {
@@ -207,6 +215,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
   <div class="h-prop" id="hdr-prop">No property loaded</div>
   <div class="h-badge">INVEST</div>
 </header>
+
+<div id="term-tip"></div>
 
 <div class="wrap">
 
@@ -293,7 +303,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
         <span class="hint">Leave 0 if ≥ 20% down</span>
       </div>
       <div class="f span2">
-        <div style="background:var(--bg);border-radius:7px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);">
+        <div style="background:var(--bg);border-radius:7px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);" data-term="pmt">
           <span style="font-size:11px;font-weight:600;color:var(--soft);">Monthly P&amp;I Payment</span>
           <span style="font-size:17px;font-weight:800;color:var(--blue);" id="live-pmt">$—</span>
         </div>
@@ -887,38 +897,38 @@ function renderSnap(inp){
   }).join('');
 
   document.getElementById('snap-metrics').innerHTML=[
-    {l:'Monthly CF',    v:'$'+fmt(cf),         s:'After all costs',    c:cf>0?'g':'r', mv:cf>0?'g':'r'},
-    {l:'Annual CF',     v:'$'+fmt(cf*12),       s:'Year 1',             c:'b',mv:'b'},
-    {l:'Cap Rate',      v:pct(capRate),          s:'NOI / price',        c:capRate>=.06?'g':capRate>=.04?'a':'r',mv:''},
-    {l:'Cash-on-Cash',  v:pct(coc),              s:'Cash flow / invested',c:coc>=.08?'g':'a',mv:''},
-    {l:'Total ROI (1yr)',  v:pct(totalROI),   s:'CF+equity+appre, annualized', c:totalROI>=.15?'g':totalROI>=.08?'a':'r',mv:''},
-    {l:'Total ROI (5yr)',  v:pct(totalROI5),  s:'CF+equity+appre, annualized', c:totalROI5>=.15?'g':totalROI5>=.08?'a':'r',mv:''},
-    {l:'Total ROI (10yr)', v:pct(totalROI10), s:'CF+equity+appre, annualized', c:totalROI10>=.15?'g':totalROI10>=.08?'a':'r',mv:''},
-    {l:'DSCR',          v:dscr<999?dscr.toFixed(2)+'x':'—', s:'Income/debt',c:dscr>=1.25?'g':'r',mv:''},
-    {l:'Rent/Price',    v:pct(r2p),              s:'1% rule',            c:r2p>=.01?'g':'a',mv:''},
-    {l:'Mo. Payment',   v:'$'+fmt(inp.pmt),      s:'P&I only',           c:'b',mv:'b'},
-    {l:'Cash to Close', v:'$'+fmt(inp.cashIn),   s:'Down+reno+close',    c:'b',mv:'b'},
-  ].map(m=>`<div class="met ${m.c}"><div class="ml">${m.l}</div><div class="mv ${m.mv}">${m.v}</div><div class="ms">${m.s}</div></div>`).join('');
+    {l:'Monthly CF',    v:'$'+fmt(cf),         s:'After all costs',    c:cf>0?'g':'r', mv:cf>0?'g':'r', t:'cf'},
+    {l:'Annual CF',     v:'$'+fmt(cf*12),       s:'Year 1',             c:'b',mv:'b', t:'annualCF'},
+    {l:'Cap Rate',      v:pct(capRate),          s:'NOI / price',        c:capRate>=.06?'g':capRate>=.04?'a':'r',mv:'', t:'capRate'},
+    {l:'Cash-on-Cash',  v:pct(coc),              s:'Cash flow / invested',c:coc>=.08?'g':'a',mv:'', t:'coc'},
+    {l:'Total ROI (1yr)',  v:pct(totalROI),   s:'CF+equity+appre, annualized', c:totalROI>=.15?'g':totalROI>=.08?'a':'r',mv:'', t:'roi1'},
+    {l:'Total ROI (5yr)',  v:pct(totalROI5),  s:'CF+equity+appre, annualized', c:totalROI5>=.15?'g':totalROI5>=.08?'a':'r',mv:'', t:'roi5'},
+    {l:'Total ROI (10yr)', v:pct(totalROI10), s:'CF+equity+appre, annualized', c:totalROI10>=.15?'g':totalROI10>=.08?'a':'r',mv:'', t:'roi10'},
+    {l:'DSCR',          v:dscr<999?dscr.toFixed(2)+'x':'—', s:'Income/debt',c:dscr>=1.25?'g':'r',mv:'', t:'dscr'},
+    {l:'Rent/Price',    v:pct(r2p),              s:'1% rule',            c:r2p>=.01?'g':'a',mv:'', t:'r2p'},
+    {l:'Mo. Payment',   v:'$'+fmt(inp.pmt),      s:'P&I only',           c:'b',mv:'b', t:'pmt'},
+    {l:'Cash to Close', v:'$'+fmt(inp.cashIn),   s:'Down+reno+close',    c:'b',mv:'b', t:'cashIn'},
+  ].map(m=>`<div class="met ${m.c}" data-term="${m.t}"><div class="ml">${m.l}</div><div class="mv ${m.mv}">${m.v}</div><div class="ms">${m.s}</div></div>`).join('');
 
   document.getElementById('snap-pl').innerHTML=`
     <tr><td>Gross Rent</td><td>$${fmt(inp.rent)}</td></tr>
     <tr class="ind"><td>Vacancy (${pct(inp.vacP)})</td><td>–$${fmt(inp.rent*inp.vacP)}</td></tr>
-    <tr><td><strong>Effective Rent</strong></td><td class="tg">$${fmt(inp.effRent)}</td></tr>
-    <tr><td><strong>Operating Expenses</strong></td><td class="tr">–$${fmt(inp.totOpEx)}</td></tr>
+    <tr data-term="effRent"><td><strong>Effective Rent</strong></td><td class="tg">$${fmt(inp.effRent)}</td></tr>
+    <tr data-term="totOpEx"><td><strong>Operating Expenses</strong></td><td class="tr">–$${fmt(inp.totOpEx)}</td></tr>
     <tr class="ind"><td>Property Tax</td><td>$${fmt(inp.taxMo)}</td></tr>
     <tr class="ind"><td>Insurance</td><td>$${fmt(inp.insurMo)}</td></tr>
     <tr class="ind"><td>HOA</td><td>$${fmt(inp.hoa)}</td></tr>
     <tr class="ind"><td>Utilities</td><td>$${fmt(inp.utils)}</td></tr>
     <tr class="ind"><td>Marketing</td><td>$${fmt(inp.mktg)}</td></tr>
-    <tr class="ind"><td>CapEx (${pct(inp.capexP)})</td><td>$${fmt(inp.capex)}</td></tr>
-    <tr class="ind"><td>Repairs (${pct(inp.repP)})</td><td>$${fmt(inp.repairs)}</td></tr>
-    <tr class="ind"><td>Mgmt (${pct(inp.mgmtP)})</td><td>$${fmt(inp.mgmt)}</td></tr>
-    <tr><td><strong>NOI</strong></td><td class="tb">$${fmt(inp.noi)}</td></tr>
-    <tr><td><strong>Financing Expenses</strong></td><td class="tr">–$${fmt(inp.totFin)}</td></tr>
-    <tr class="ind"><td>P&amp;I</td><td>$${fmt(inp.pmt)}</td></tr>
-    <tr class="ind"><td>PMI</td><td>$${fmt(inp.pmiEff)}</td></tr>
-    <tr class="tot" style="border-top:2px solid var(--border);padding-top:10px;"><td>Total Monthly Expenses</td><td class="tr">–$${fmt(inp.totOpEx+inp.totFin)}</td></tr>
-    <tr class="tot"><td>Monthly Cash Flow</td><td class="${inp.cf>=0?'tg':'tr'}">$${fmt(inp.cf)}</td></tr>
+    <tr class="ind" data-term="capex"><td>CapEx (${pct(inp.capexP)})</td><td>$${fmt(inp.capex)}</td></tr>
+    <tr class="ind" data-term="repairs"><td>Repairs (${pct(inp.repP)})</td><td>$${fmt(inp.repairs)}</td></tr>
+    <tr class="ind" data-term="mgmt"><td>Mgmt (${pct(inp.mgmtP)})</td><td>$${fmt(inp.mgmt)}</td></tr>
+    <tr data-term="noi"><td><strong>NOI</strong></td><td class="tb">$${fmt(inp.noi)}</td></tr>
+    <tr data-term="totFin"><td><strong>Financing Expenses</strong></td><td class="tr">–$${fmt(inp.totFin)}</td></tr>
+    <tr class="ind" data-term="pmt"><td>P&amp;I</td><td>$${fmt(inp.pmt)}</td></tr>
+    <tr class="ind" data-term="pmi"><td>PMI</td><td>$${fmt(inp.pmiEff)}</td></tr>
+    <tr class="tot" style="border-top:2px solid var(--border);padding-top:10px;" data-term="totalExp"><td>Total Monthly Expenses</td><td class="tr">–$${fmt(inp.totOpEx+inp.totFin)}</td></tr>
+    <tr class="tot" data-term="cf"><td>Monthly Cash Flow</td><td class="${inp.cf>=0?'tg':'tr'}">$${fmt(inp.cf)}</td></tr>
   `;
 
   document.getElementById('snap-ctc').innerHTML=`
@@ -1584,6 +1594,74 @@ function fmt(n){if(n===undefined||n===null||isNaN(n))return'0';return Math.round
 function fmtK(n){const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(1)+'M';if(a>=1000)return(n/1000).toFixed(0)+'k';return Math.round(n).toString();}
 function pct(n){if(isNaN(n)||n===undefined)return'—';return(n*100).toFixed(2)+'%';}
 
+// ─────────────────── TERM TOOLTIPS ───────────────────
+const TERM_DEFS = {
+  cf:        {name:'Monthly Cash Flow', def:'What\'s left over each month after collecting rent and paying all operating expenses and the mortgage.', formula:'Cash Flow = Effective Rent − Operating Expenses − P&I − PMI'},
+  annualCF:  {name:'Annual Cash Flow', def:'Total cash flow over a full year.', formula:'Annual Cash Flow = Monthly Cash Flow × 12'},
+  capRate:   {name:'Cap Rate', def:'Return on the property\'s income relative to its price, ignoring financing. Lets you compare deals on equal footing.', formula:'Cap Rate = (NOI × 12) ÷ Purchase Price'},
+  coc:       {name:'Cash-on-Cash Return', def:'Annual cash flow as a percentage of the cash you actually invested.', formula:'Cash-on-Cash = (Annual Cash Flow) ÷ Total Cash Invested'},
+  roi1:      {name:'Total ROI (1-Year)', def:'Annualized return including cash flow, loan paydown (equity), and appreciation.', formula:'Total ROI = (Cash Flow + Equity Gained) ÷ Cash Invested ÷ Years'},
+  roi5:      {name:'Total ROI (5-Year)', def:'Same as Total ROI, averaged annually over a 5-year hold.', formula:'Total ROI = (Cash Flow + Equity Gained over 5yr) ÷ Cash Invested ÷ 5'},
+  roi10:     {name:'Total ROI (10-Year)', def:'Same as Total ROI, averaged annually over a 10-year hold.', formula:'Total ROI = (Cash Flow + Equity Gained over 10yr) ÷ Cash Invested ÷ 10'},
+  dscr:      {name:'DSCR (Debt Service Coverage Ratio)', def:'How many times the property\'s income covers its debt payments. Lenders typically require ≥ 1.25.', formula:'DSCR = NOI ÷ (P&I + PMI)'},
+  r2p:       {name:'Rent-to-Price Ratio (1% Rule)', def:'Quick screening ratio comparing monthly rent to purchase price.', formula:'Rent-to-Price = Monthly Rent ÷ Purchase Price'},
+  pmt:       {name:'P&I Payment', def:'Your monthly loan payment covering principal and interest.', formula:'P&I = Loan × r(1+r)ⁿ ÷ ((1+r)ⁿ − 1), where r = monthly rate, n = total payments'},
+  pmi:       {name:'PMI (Private Mortgage Insurance)', def:'Extra monthly fee lenders charge when your down payment is below 20%. Protects the lender, not you.'},
+  cashIn:    {name:'Cash to Close', def:'Total upfront cash required to acquire and prepare the property.', formula:'Cash to Close = Down Payment + Renovation + Furnishing + Closing Costs'},
+  effRent:   {name:'Effective Rent', def:'Gross rent adjusted for expected vacancy.', formula:'Effective Rent = Gross Rent × (1 − Vacancy Rate)'},
+  totOpEx:   {name:'Operating Expenses', def:'All recurring costs to operate the property, not including the mortgage.', formula:'Operating Expenses = Tax + Insurance + HOA + Utilities + Marketing + CapEx + Repairs + Management'},
+  capex:     {name:'CapEx Reserve', def:'Money set aside each month for big-ticket replacements (roof, HVAC, etc.).', formula:'CapEx = Monthly Rent × CapEx %'},
+  repairs:   {name:'Repairs Reserve', def:'Money set aside each month for routine maintenance and repairs.', formula:'Repairs = Monthly Rent × Repairs %'},
+  mgmt:      {name:'Property Management', def:'Fee paid to a property manager, if self-managing this is $0.', formula:'Management = Monthly Rent × Management %'},
+  noi:       {name:'NOI (Net Operating Income)', def:'Income left after operating expenses, before financing costs. The core figure used for Cap Rate and DSCR.', formula:'NOI = Effective Rent − Operating Expenses'},
+  totFin:    {name:'Financing Expenses', def:'Costs related to your loan.', formula:'Financing Expenses = P&I + PMI'},
+  totalExp:  {name:'Total Monthly Expenses', def:'The all-in monthly cost of owning and financing the property.', formula:'Total Monthly Expenses = Operating Expenses + Financing Expenses'},
+};
+
+let _termTimer=null, _termTarget=null;
+function initTermTooltips(){
+  const tip=document.getElementById('term-tip');
+  const HOVER_DELAY=1500;
+  document.addEventListener('mouseover', e=>{
+    const el=e.target.closest('[data-term]');
+    if(!el || el===_termTarget) return;
+    clearTimeout(_termTimer);
+    _termTarget=el;
+    tip.classList.remove('show');
+    _termTimer=setTimeout(()=>showTermTip(el,e), HOVER_DELAY);
+  });
+  document.addEventListener('mouseout', e=>{
+    const el=e.target.closest('[data-term]');
+    if(!el) return;
+    if(e.relatedTarget && el.contains(e.relatedTarget)) return;
+    clearTimeout(_termTimer);
+    _termTarget=null;
+    tip.classList.remove('show');
+  });
+  document.addEventListener('mousemove', e=>{
+    if(tip.classList.contains('show')) positionTermTip(tip,e);
+  });
+  document.addEventListener('scroll', ()=>tip.classList.remove('show'), true);
+}
+function showTermTip(el,e){
+  const def=TERM_DEFS[el.dataset.term];
+  if(!def) return;
+  const tip=document.getElementById('term-tip');
+  tip.innerHTML=`<div class="tt-name">${def.name}</div><div>${def.def}</div>`+
+    (def.formula?`<div class="tt-formula">${def.formula}</div>`:'');
+  positionTermTip(tip,e);
+  tip.classList.add('show');
+}
+function positionTermTip(tip,e){
+  const pad=14;
+  let x=e.clientX+pad, y=e.clientY+pad;
+  const r=tip.getBoundingClientRect();
+  if(x+r.width>window.innerWidth) x=e.clientX-r.width-pad;
+  if(y+r.height>window.innerHeight) y=e.clientY-r.height-pad;
+  tip.style.left=Math.max(4,x)+'px';
+  tip.style.top=Math.max(4,y)+'px';
+}
+
 // ─────────────────── INIT ───────────────────
 window.addEventListener('DOMContentLoaded',()=>{
   // Initialize all slider displays
@@ -1592,6 +1670,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     const ed=document.getElementById('ed-'+k);
     if(sl&&ed) ed.value=parseFloat(sl.value)+'%';
   });
+  initTermTooltips();
   calc();
 });
 </script>

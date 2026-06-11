@@ -845,12 +845,21 @@ function calc(){
 }
 
 // ─────────────────── SNAPSHOT ───────────────────
+// Annualized Total ROI over N years = (cumulative cash flow + equity gained) / cash invested / N
+function totalROIyrs(inp, years){
+  const {cashIn,downAmt} = inp;
+  if(cashIn<=0 || !_sched.length) return 0;
+  const idx = Math.min(years*12, _sched.length)-1;
+  const cumCF = _sched.slice(0, idx+1).reduce((s,r)=>s+r.cf, 0);
+  const equityN = _sched[idx].homeVal - _sched[idx].bal;
+  return (cumCF + (equityN - downAmt)) / cashIn / years;
+}
+
 function renderSnap(inp){
   const {capRate,coc,dscr,cf,r2p,grm,purch,rent,cashIn,appP} = inp;
-  // Year 1 total ROI = (annual cash flow + annual equity paydown + annual appreciation) / cash invested
-  const yr1PrinPaid = _sched.length>=12 ? _sched.slice(0,12).reduce((s,r)=>s+r.prin,0) : 0;
-  const yr1Appre = purch*appP;
-  const totalROI = cashIn>0 ? (cf*12 + yr1PrinPaid + yr1Appre)/cashIn : 0;
+  const totalROI   = totalROIyrs(inp,1);
+  const totalROI5  = totalROIyrs(inp,5);
+  const totalROI10 = totalROIyrs(inp,10);
   const chks=[
     {l:'Cap Rate ≥ 6%',      pass:capRate>=.06, warn:capRate>=.04, v:pct(capRate)},
     {l:'1% Rule',             pass:r2p>=.01,     warn:r2p>=.007,   v:pct(r2p)},
@@ -882,7 +891,9 @@ function renderSnap(inp){
     {l:'Annual CF',     v:'$'+fmt(cf*12),       s:'Year 1',             c:'b',mv:'b'},
     {l:'Cap Rate',      v:pct(capRate),          s:'NOI / price',        c:capRate>=.06?'g':capRate>=.04?'a':'r',mv:''},
     {l:'Cash-on-Cash',  v:pct(coc),              s:'Cash flow / invested',c:coc>=.08?'g':'a',mv:''},
-    {l:'Total ROI',     v:pct(totalROI),          s:'CF+equity+appre Yr1',c:totalROI>=.15?'g':totalROI>=.08?'a':'r',mv:''},
+    {l:'Total ROI (1yr)',  v:pct(totalROI),   s:'CF+equity+appre, annualized', c:totalROI>=.15?'g':totalROI>=.08?'a':'r',mv:''},
+    {l:'Total ROI (5yr)',  v:pct(totalROI5),  s:'CF+equity+appre, annualized', c:totalROI5>=.15?'g':totalROI5>=.08?'a':'r',mv:''},
+    {l:'Total ROI (10yr)', v:pct(totalROI10), s:'CF+equity+appre, annualized', c:totalROI10>=.15?'g':totalROI10>=.08?'a':'r',mv:''},
     {l:'DSCR',          v:dscr<999?dscr.toFixed(2)+'x':'—', s:'Income/debt',c:dscr>=1.25?'g':'r',mv:''},
     {l:'Rent/Price',    v:pct(r2p),              s:'1% rule',            c:r2p>=.01?'g':'a',mv:''},
     {l:'Mo. Payment',   v:'$'+fmt(inp.pmt),      s:'P&I only',           c:'b',mv:'b'},

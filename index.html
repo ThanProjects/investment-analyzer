@@ -164,10 +164,14 @@ table.dt tr:hover td{background:var(--bg);}
 hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 /* PRINT / PDF */
+.print-head{display:none;}
 @media print {
   header,.tabs,.brow,.btn,.pill,#snap-ratios,.no-print{display:none!important;}
-  #panel-cashflow,#panel-projection,#panel-selling,#panel-amort,#panel-import{display:none!important;}
-  #panel-snapshot{display:block!important;}
+  .panel{display:none!important;}
+  .panel.print-active{display:block!important;}
+  .print-head{display:block!important;margin-bottom:12px;}
+  .print-head h1{font-size:18px;margin-bottom:2px;}
+  .print-head .ps-date{font-size:11px;color:#666;}
   body{background:#fff;}
   .wrap{padding:0;max-width:100%;}
   .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;margin-bottom:8px;}
@@ -206,6 +210,11 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <div class="wrap">
 
+<div class="print-head">
+  <h1 id="print-prop">Investment Summary</h1>
+  <div class="ps-date" id="print-date"></div>
+</div>
+
 <!-- TABS -->
 <div class="tabs">
   <button class="tab on"  onclick="goTab('inputs')">Inputs</button>
@@ -219,6 +228,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <!-- ════════════════════════ INPUTS ════════════════════════ -->
 <div id="panel-inputs" class="panel on">
+
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPagePDF('inputs')">📄 Export PDF</button>
+  </div>
 
   <div class="card">
     <div class="ctitle">Property</div>
@@ -387,7 +400,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 <!-- ════════════════════════ SNAPSHOT ════════════════════════ -->
 <div id="panel-snapshot" class="panel">
   <div class="brow no-print" style="margin-bottom:10px;">
-    <button class="btn s" onclick="exportPDF()">📄 Export PDF</button>
+    <button class="btn s" onclick="exportPagePDF('snapshot')">📄 Export PDF</button>
   </div>
   <div id="verdict" class="verdict warn"><div class="vi">⚠️</div><div style="flex:1"><div class="vt" id="v-title">—</div><div class="vd" id="v-detail">—</div><div class="vtags" id="v-tags"></div></div></div>
   <div class="mets" id="snap-metrics"></div>
@@ -398,6 +411,9 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <!-- ════════════════════════ CASH FLOW ════════════════════════ -->
 <div id="panel-cashflow" class="panel">
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPagePDF('cashflow')">📄 Export PDF</button>
+  </div>
   <div class="card">
     <div class="sh">
       <h2>Monthly Snapshot</h2>
@@ -417,6 +433,9 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <!-- ════════════════════════ PROJECTION ════════════════════════ -->
 <div id="panel-projection" class="panel">
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPagePDF('projection')">📄 Export PDF</button>
+  </div>
   <div class="card">
     <div class="sh">
       <h2>30-Year Projection</h2>
@@ -437,6 +456,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <!-- ════════════════════════ SELLING ════════════════════════ -->
 <div id="panel-selling" class="panel">
+
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPagePDF('selling')">📄 Export PDF</button>
+  </div>
 
   <div class="card">
     <div class="ctitle">Sale Assumptions</div>
@@ -494,6 +517,9 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <!-- ════════════════════════ AMORTIZATION ════════════════════════ -->
 <div id="panel-amort" class="panel">
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPagePDF('amort')">📄 Export PDF</button>
+  </div>
   <div class="card">
     <div class="sh">
       <h2>Amortization Schedule</h2>
@@ -509,10 +535,16 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
       </table>
     </div>
   </div>
+  <div class="brow no-print">
+    <button class="btn p" onclick="exportPagePDF('snapshot')">📄 Export Summary</button>
+  </div>
 </div>
 
 <!-- ════════════════════════ SMART IMPORT ════════════════════════ -->
 <div id="panel-import" class="panel">
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPagePDF('import')">📄 Export PDF</button>
+  </div>
   <div class="card">
     <div class="ctitle">Smart Import — Paste Any Text</div>
     <p style="font-size:12px;color:var(--soft);margin-bottom:10px;">
@@ -1526,8 +1558,13 @@ function applyImport(){
 }
 
 // ─────────────────── PDF EXPORT ───────────────────
-function exportPDF(){
-  goTab('snapshot');
+function exportPagePDF(panelId){
+  goTab(panelId);
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('print-active'));
+  document.getElementById('panel-'+panelId).classList.add('print-active');
+  const label = document.getElementById('propLabel').value.trim();
+  document.getElementById('print-prop').textContent = label || 'Investment Summary';
+  document.getElementById('print-date').textContent = 'Generated '+new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
   setTimeout(()=>window.print(), 150);
 }
 

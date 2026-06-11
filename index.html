@@ -163,6 +163,17 @@ table.dt tr:hover td{background:var(--bg);}
 /* DIVIDER */
 hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
+/* PRINT / PDF */
+@media print {
+  header,.tabs,.brow,.btn,.pill,#snap-ratios,.no-print{display:none!important;}
+  #panel-cashflow,#panel-projection,#panel-selling,#panel-amort,#panel-import{display:none!important;}
+  #panel-snapshot{display:block!important;}
+  body{background:#fff;}
+  .wrap{padding:0;max-width:100%;}
+  .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;margin-bottom:8px;}
+  .verdict{break-inside:avoid;}
+}
+
 /* IMPORT */
 .imp-box{border:2px dashed var(--border);border-radius:var(--r);padding:12px;background:var(--bg);margin-bottom:10px;}
 .imp-box textarea{width:100%;min-height:80px;border:none;background:none;font-size:12px;color:var(--ink);resize:vertical;outline:none;font-family:inherit;line-height:1.6;}
@@ -268,6 +279,12 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
         </div>
         <span class="hint">Leave 0 if ≥ 20% down</span>
       </div>
+      <div class="f span2">
+        <div style="background:var(--bg);border-radius:7px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);">
+          <span style="font-size:11px;font-weight:600;color:var(--soft);">Monthly P&amp;I Payment</span>
+          <span style="font-size:17px;font-weight:800;color:var(--blue);" id="live-pmt">$—</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -369,6 +386,9 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 <!-- ════════════════════════ SNAPSHOT ════════════════════════ -->
 <div id="panel-snapshot" class="panel">
+  <div class="brow no-print" style="margin-bottom:10px;">
+    <button class="btn s" onclick="exportPDF()">📄 Export PDF</button>
+  </div>
   <div id="verdict" class="verdict warn"><div class="vi">⚠️</div><div style="flex:1"><div class="vt" id="v-title">—</div><div class="vd" id="v-detail">—</div><div class="vtags" id="v-tags"></div></div></div>
   <div class="mets" id="snap-metrics"></div>
   <div class="card"><div class="ctitle">Monthly P&amp;L</div><table class="bkt" id="snap-pl"></table></div>
@@ -449,8 +469,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
   <div class="card">
     <div class="sh"><h2>Net Proceeds If Sold Each Year</h2></div>
     <div class="infobox">
-      <strong>Net proceeds</strong> = Sale price – remaining loan – realtor fees – seller credits – other costs. 
-      A negative value means your sale proceeds don't yet cover all payoff costs (common in the first few years). 
+      <strong>Net proceeds</strong> = Sale price – remaining loan – realtor fees – seller credits – other costs.
+      A negative value means your sale proceeds don't yet cover all payoff costs (common in the first few years).
       This does <em>not</em> subtract your original down payment — that's shown separately as "Return on Investment."
     </div>
     <div class="ch-wrap" style="height:200px;"><canvas id="saleChart"></canvas></div>
@@ -498,6 +518,12 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
     <p style="font-size:12px;color:var(--soft);margin-bottom:10px;">
       Paste a listing, email, MLS sheet, or your own notes. Click <strong>Extract</strong> and every field the analyzer can find gets pre-filled below. Edit anything, then hit <strong>Apply</strong>.
     </p>
+    <div class="infobox" style="margin-bottom:10px;">
+      <strong>Tip:</strong> Click <em>Copy Field List</em> below to get all field names → paste into an AI assistant with your property details → paste the AI's response here and click Extract.
+    </div>
+    <div class="brow" style="margin-bottom:10px;">
+      <button class="btn s" onclick="copyFieldList(event)">📋 Copy Field List for AI</button>
+    </div>
     <div class="imp-box">
       <textarea id="imp-text" placeholder="Example:&#10;Listed at $285,000. 3bed/2bath. Property taxes ~$210/mo. Insurance $125/mo. HOA $60/mo. Utilities $90/mo. Estimated rent $1,950/mo. 15% down. Rate around 6.75%. Needs about $12k in repairs."></textarea>
     </div>
@@ -734,6 +760,8 @@ function getInp(){
 
   // update hints
   updateDownHint();
+  const lp = document.getElementById('live-pmt');
+  if(lp) lp.textContent = loan>0 ? '$'+fmt(pmt)+'/mo' : '$—';
   const th = document.getElementById('tax-ann-hint');
   const ih = document.getElementById('insur-ann-hint');
   if(th) th.textContent = taxMo>0 ? '≈ $'+fmt(taxMo*12)+'/yr' : '';
@@ -786,7 +814,11 @@ function calc(){
 
 // ─────────────────── SNAPSHOT ───────────────────
 function renderSnap(inp){
-  const {capRate,coc,dscr,cf,r2p,grm,purch,rent} = inp;
+  const {capRate,coc,dscr,cf,r2p,grm,purch,rent,cashIn,appP} = inp;
+  // Year 1 total ROI = (annual cash flow + annual equity paydown + annual appreciation) / cash invested
+  const yr1PrinPaid = _sched.length>=12 ? _sched.slice(0,12).reduce((s,r)=>s+r.prin,0) : 0;
+  const yr1Appre = purch*appP;
+  const totalROI = cashIn>0 ? (cf*12 + yr1PrinPaid + yr1Appre)/cashIn : 0;
   const chks=[
     {l:'Cap Rate ≥ 6%',      pass:capRate>=.06, warn:capRate>=.04, v:pct(capRate)},
     {l:'1% Rule',             pass:r2p>=.01,     warn:r2p>=.007,   v:pct(r2p)},
@@ -817,7 +849,8 @@ function renderSnap(inp){
     {l:'Monthly CF',    v:'$'+fmt(cf),         s:'After all costs',    c:cf>0?'g':'r', mv:cf>0?'g':'r'},
     {l:'Annual CF',     v:'$'+fmt(cf*12),       s:'Year 1',             c:'b',mv:'b'},
     {l:'Cap Rate',      v:pct(capRate),          s:'NOI / price',        c:capRate>=.06?'g':capRate>=.04?'a':'r',mv:''},
-    {l:'Cash-on-Cash',  v:pct(coc),              s:'Cash / invested',    c:coc>=.08?'g':'a',mv:''},
+    {l:'Cash-on-Cash',  v:pct(coc),              s:'Cash flow / invested',c:coc>=.08?'g':'a',mv:''},
+    {l:'Total ROI',     v:pct(totalROI),          s:'CF+equity+appre Yr1',c:totalROI>=.15?'g':totalROI>=.08?'a':'r',mv:''},
     {l:'DSCR',          v:dscr<999?dscr.toFixed(2)+'x':'—', s:'Income/debt',c:dscr>=1.25?'g':'r',mv:''},
     {l:'Rent/Price',    v:pct(r2p),              s:'1% rule',            c:r2p>=.01?'g':'a',mv:''},
     {l:'Mo. Payment',   v:'$'+fmt(inp.pmt),      s:'P&I only',           c:'b',mv:'b'},
@@ -828,8 +861,8 @@ function renderSnap(inp){
     <tr><td>Gross Rent</td><td>$${fmt(inp.rent)}</td></tr>
     <tr class="ind"><td>Vacancy (${pct(inp.vacP)})</td><td>–$${fmt(inp.rent*inp.vacP)}</td></tr>
     <tr><td><strong>Effective Rent</strong></td><td class="tg">$${fmt(inp.effRent)}</td></tr>
-    <tr><td>Operating Expenses</td><td class="tr">–$${fmt(inp.totOpEx)}</td></tr>
-    <tr class="ind"><td>Tax</td><td>$${fmt(inp.taxMo)}</td></tr>
+    <tr><td><strong>Operating Expenses</strong></td><td class="tr">–$${fmt(inp.totOpEx)}</td></tr>
+    <tr class="ind"><td>Property Tax</td><td>$${fmt(inp.taxMo)}</td></tr>
     <tr class="ind"><td>Insurance</td><td>$${fmt(inp.insurMo)}</td></tr>
     <tr class="ind"><td>HOA</td><td>$${fmt(inp.hoa)}</td></tr>
     <tr class="ind"><td>Utilities</td><td>$${fmt(inp.utils)}</td></tr>
@@ -838,9 +871,10 @@ function renderSnap(inp){
     <tr class="ind"><td>Repairs (${pct(inp.repP)})</td><td>$${fmt(inp.repairs)}</td></tr>
     <tr class="ind"><td>Mgmt (${pct(inp.mgmtP)})</td><td>$${fmt(inp.mgmt)}</td></tr>
     <tr><td><strong>NOI</strong></td><td class="tb">$${fmt(inp.noi)}</td></tr>
-    <tr><td>Financing</td><td class="tr">–$${fmt(inp.totFin)}</td></tr>
-    <tr class="ind"><td>P&I</td><td>$${fmt(inp.pmt)}</td></tr>
-    ${inp.pmiEff>0?`<tr class="ind"><td>PMI</td><td>$${fmt(inp.pmiEff)}</td></tr>`:''}
+    <tr><td><strong>Financing Expenses</strong></td><td class="tr">–$${fmt(inp.totFin)}</td></tr>
+    <tr class="ind"><td>P&amp;I</td><td>$${fmt(inp.pmt)}</td></tr>
+    <tr class="ind"><td>PMI</td><td>$${fmt(inp.pmiEff)}</td></tr>
+    <tr class="tot" style="border-top:2px solid var(--border);padding-top:10px;"><td>Total Monthly Expenses</td><td class="tr">–$${fmt(inp.totOpEx+inp.totFin)}</td></tr>
     <tr class="tot"><td>Monthly Cash Flow</td><td class="${inp.cf>=0?'tg':'tr'}">$${fmt(inp.cf)}</td></tr>
   `;
 
@@ -1058,6 +1092,49 @@ function goTab(id){
     p.classList.toggle('on',p.id==='panel-'+id);
   });
   if(id!=='inputs'&&id!=='import') calc();
+}
+
+// ─────────────────── COPY FIELD LIST ───────────────────
+function copyFieldList(e){
+  const list = `Fill in these real estate investment fields with realistic numbers. Format each line as "Field Name: value" (use $ for dollar amounts and % for percentages).
+
+PROPERTY
+Purchase Price: $
+After-Repair Value (ARV): $
+Renovation Cost: $
+Closing Costs: $
+Furnishing / Setup: $
+
+FINANCING
+Down Payment: %
+Interest Rate: %
+PMI /mo: $
+
+INCOME
+Monthly Rent: $
+Vacancy Rate: %
+
+MONTHLY EXPENSES
+Property Tax /mo: $
+Insurance /mo: $
+HOA /mo: $
+Utilities /mo: $
+Marketing /mo: $
+CapEx Reserve: %
+Repairs Reserve: %
+Property Management: %
+
+GROWTH ASSUMPTIONS
+Annual Appreciation: %
+Annual Rent Increase: %
+Expense Inflation: %
+Realtor Commission: %`;
+  navigator.clipboard.writeText(list).then(()=>{
+    const btn = e.currentTarget;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copied!';
+    setTimeout(()=>{ btn.innerHTML = orig; }, 2000);
+  }).catch(()=>{ alert('Copy failed — please copy manually.'); });
 }
 
 // ─────────────────── SMART IMPORT ───────────────────
@@ -1446,6 +1523,12 @@ function applyImport(){
   calc();
   document.getElementById('imp-form').style.display = 'none';
   goTab('snapshot');
+}
+
+// ─────────────────── PDF EXPORT ───────────────────
+function exportPDF(){
+  goTab('snapshot');
+  setTimeout(()=>window.print(), 150);
 }
 
 // ─────────────────── HELPERS ───────────────────

@@ -304,7 +304,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:10px 0;}
       </div>
       <div class="f span2">
         <div style="background:var(--bg);border-radius:7px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);" data-term="pmt">
-          <span style="font-size:11px;font-weight:600;color:var(--soft);">Monthly P&amp;I Payment</span>
+          <span style="font-size:11px;font-weight:600;color:var(--soft);">Monthly P&amp;I Mortgage Payment</span>
           <span style="font-size:17px;font-weight:800;color:var(--blue);" id="live-pmt">$—</span>
         </div>
       </div>
@@ -906,7 +906,7 @@ function renderSnap(inp){
     {l:'Total ROI (10yr)', v:pct(totalROI10), s:'CF+equity+appre, annualized', c:totalROI10>=.15?'g':totalROI10>=.08?'a':'r',mv:'', t:'roi10'},
     {l:'DSCR',          v:dscr<999?dscr.toFixed(2)+'x':'—', s:'Income/debt',c:dscr>=1.25?'g':'r',mv:'', t:'dscr'},
     {l:'Rent/Price',    v:pct(r2p),              s:'1% rule',            c:r2p>=.01?'g':'a',mv:'', t:'r2p'},
-    {l:'Mo. Payment',   v:'$'+fmt(inp.pmt),      s:'P&I only',           c:'b',mv:'b', t:'pmt'},
+    {l:'Mo. Payment',   v:'$'+fmt(inp.pmt),      s:'P&I Mortgage only',  c:'b',mv:'b', t:'pmt'},
     {l:'Cash to Close', v:'$'+fmt(inp.cashIn),   s:'Down+reno+close',    c:'b',mv:'b', t:'cashIn'},
   ].map(m=>`<div class="met ${m.c}" data-term="${m.t}"><div class="ml">${m.l}</div><div class="mv ${m.mv}">${m.v}</div><div class="ms">${m.s}</div></div>`).join('');
 
@@ -925,7 +925,7 @@ function renderSnap(inp){
     <tr class="ind" data-term="mgmt"><td>Mgmt (${pct(inp.mgmtP)})</td><td>$${fmt(inp.mgmt)}</td></tr>
     <tr data-term="noi"><td><strong>NOI</strong></td><td class="tb">$${fmt(inp.noi)}</td></tr>
     <tr data-term="totFin"><td><strong>Financing Expenses</strong></td><td class="tr">–$${fmt(inp.totFin)}</td></tr>
-    <tr class="ind" data-term="pmt"><td>P&amp;I</td><td>$${fmt(inp.pmt)}</td></tr>
+    <tr class="ind" data-term="pmt"><td>P&amp;I Mortgage</td><td>$${fmt(inp.pmt)}</td></tr>
     <tr class="ind" data-term="pmi"><td>PMI</td><td>$${fmt(inp.pmiEff)}</td></tr>
     <tr class="tot" style="border-top:2px solid var(--border);padding-top:10px;" data-term="totalExp"><td>Total Monthly Expenses</td><td class="tr">–$${fmt(inp.totOpEx+inp.totFin)}</td></tr>
     <tr class="tot" data-term="cf"><td>Monthly Cash Flow</td><td class="${inp.cf>=0?'tg':'tr'}">$${fmt(inp.cf)}</td></tr>
@@ -1573,6 +1573,14 @@ function applyImport(){
   });
 
   if(applied === 0){ alert('No values to apply — fill in at least one field above.'); return; }
+
+  const homeValueMissing = document.getElementById('homeValue').value.trim() === '';
+  if(homeValueMissing){
+    document.getElementById('if-homeValue').focus();
+    alert('Purchase Price wasn\'t detected and is still empty. Cap Rate, P&I Mortgage, and other metrics need it — please enter it manually before continuing.');
+    return;
+  }
+
   calc();
   document.getElementById('imp-form').style.display = 'none';
   goTab('snapshot');
@@ -1605,7 +1613,7 @@ const TERM_DEFS = {
   roi10:     {name:'Total ROI (10-Year)', def:'Same as Total ROI, averaged annually over a 10-year hold.', formula:'Total ROI = (Cash Flow + Equity Gained over 10yr) ÷ Cash Invested ÷ 10'},
   dscr:      {name:'DSCR (Debt Service Coverage Ratio)', def:'How many times the property\'s income covers its debt payments. Lenders typically require ≥ 1.25.', formula:'DSCR = NOI ÷ (P&I + PMI)'},
   r2p:       {name:'Rent-to-Price Ratio (1% Rule)', def:'Quick screening ratio comparing monthly rent to purchase price.', formula:'Rent-to-Price = Monthly Rent ÷ Purchase Price'},
-  pmt:       {name:'P&I Payment', def:'Your monthly loan payment covering principal and interest.', formula:'P&I = Loan × r(1+r)ⁿ ÷ ((1+r)ⁿ − 1), where r = monthly rate, n = total payments'},
+  pmt:       {name:'P&I Mortgage Payment', def:'Your monthly loan payment covering principal and interest.', formula:'P&I Mortgage = Loan × r(1+r)ⁿ ÷ ((1+r)ⁿ − 1), where r = monthly rate, n = total payments'},
   pmi:       {name:'PMI (Private Mortgage Insurance)', def:'Extra monthly fee lenders charge when your down payment is below 20%. Protects the lender, not you.'},
   cashIn:    {name:'Cash to Close', def:'Total upfront cash required to acquire and prepare the property.', formula:'Cash to Close = Down Payment + Renovation + Furnishing + Closing Costs'},
   effRent:   {name:'Effective Rent', def:'Gross rent adjusted for expected vacancy.', formula:'Effective Rent = Gross Rent × (1 − Vacancy Rate)'},
